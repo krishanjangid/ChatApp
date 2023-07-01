@@ -1,21 +1,26 @@
-import React from "react";
+import React,{ useState } from "react";
+import './App.css';
 import {BrowserRouter as Router, Route, Routes} from "react-router-dom";
-import Join from "./Components/Join";
-import Chat from "./Components/Chat";
+import Signup from "./components/signup";
+import Login from "./components/Login";
+import Join from "./components/Join";
+import Chat from "./components/Chat";
+import PageNotFound from "./pages/PageNotFound";
 
-
-const App = () => {
+export default function App() {
   
   return (
-    <>
-      <Router>
+   <>
+    <Router>
         <Routes>
-          <Route path="/" element={<Join/>} />
+          <Route path="/" element={<Login/>} />
+          <Route path="/signup" element={<Signup/>} />
+          <Route path="/join" element={<Join/>} />
           <Route path="/chat" element={<Chat/>} />
+          <Route path="*" element={<PageNotFound/>} />
+
         </Routes>  
       </Router>
-    </>
+   </>
   );
-};
-
-export default App;
+}

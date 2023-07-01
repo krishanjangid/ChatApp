@@ -11,7 +11,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "http://192.168.1.6:5173/",
   },
 });
 
@@ -22,29 +22,27 @@ let users = [];
 
 io.on("connection", (socket) => {
   console.log("user connected");
-  
-  
-
  
   // when user joins
     socket.on("join",({name,room},callback)=>{
-   
+      
       name = name.trim().toLowerCase();
       room = room.trim().toLowerCase();
-  
-      const existingUser = users.find((user)=>user.room === room && user.name === name);
-      if(!name || !room){
-        return callback({error:"Username and room are required"});
-      }
-      if(existingUser){
-        return callback({error:"Username is taken"});
-      }
       
+      if(!name || !room){
+        return callback("Please enter a valid name and room");
+      }
+      // const existingUser = users.find((user)=>user.name === name && user.room === room);
+      // if(existingUser){
+      //   return callback("Username already taken");
+      // }
+
       const user = {id:socket.id,name,room};
       users.push(user);
       
       
       socket.join(user.room);
+      
       socket.emit('username',user.name);
 
       socket.emit('message', { user: 'admin', text: `${user.name}, welcome to room ${user.room}.`});
@@ -60,32 +58,44 @@ io.on("connection", (socket) => {
  
 
 
-
+    // when user sends message
   socket.on("sendMessage", (message, callback) => {
-    // const user = users.find((user) => user.id === socket.id);
-    // console.log(user);
-    io.to(user.room).emit("message", { user: user.name, text: message });
-    callback();
+    try{
+      console.log(socket.id);
+      console.log(users.find((person)=>person.id === socket.id));
+      const user = users.find((person)=>person.id === socket.id);
+      const {name,room} = user;
+      console.log("name: "+name);
+      console.log("room: "+room);
+      console.log(message);
+      io.to(room).emit("message", { user:name, text: message });
+      callback();
+    }
+    catch(err){
+      console.log(err);
+    }
   });
 
-  socket.on("disconnect", () => {
-    // const user = users.pop((user) => user.id === socket.id);
-    const userr = users.findIndex((user) => user.id === socket.id);
-  
-    if(userr !== -1){
-      users.splice(userr,1);
-    }
-    
+  const lefftedUser = []; 
 
-    if(users){
+socket.on("disconnect", () => {
+  const userr = users.findIndex((user) => user.id === socket.id);
 
-      io.to(users.room).emit("message",{user:"admin",text:`${users.name} has left`});
-      io.to(users.room).emit('roomData',{room:users.room,users:users.filter((userr)=>userr.room === users.room)});
-      
-    }
-    console.log(`${socket.id} disconnected`);
+  if (userr !== -1) {
+    const leftUser = users.splice(userr, 1);
+    lefftedUser.push(leftUser[0].name);
+    io.to(leftUser[0].room).emit("message", {user: "admin", text: `${leftUser[0].name} has left.`});
     
-  });
+  }
+  const user = users.find((user) => user.id === socket.id);
+  console.log(lefftedUser);
+  if(user){
+    io.to(user.room).emit('roomData', {room: user.room, users: users.filter((item)=>item.room === user.room)});
+  }
+
+  console.log(`${socket.id} disconnected`);
+});
+
 });
 
 app.use(express.json());
